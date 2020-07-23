@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-class MissingInputError(Exception):
+class InsufficientInputError(Exception):
     """入力が不足していることを知らせる例外クラス"""
     pass
 
