@@ -84,10 +84,10 @@ class CurveFit(Common):
         try:
             self.info('Input parameters')
             self.info('Enter the values separated by ","')
+            self.info(', '.join(
+                [f'{p} ({k})' for p, k in CurveFitParameter.PROPERTIES.items()]))
             for name in self.scf_model.param_names:
                 self.info(f'for {name}')
-                self.info(', '.join(
-                    [f'{p} ({k})' for p, k in CurveFitParameter.PROPERTIES.items()]))
                 entry = input()
                 values = tuple(
                     modifier(float(v.strip())) for v, modifier in zip(
