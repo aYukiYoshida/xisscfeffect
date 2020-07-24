@@ -72,12 +72,10 @@ class CurveFit(Common):
         self.debug('START', inspect.currentframe())
         self.info(f'READ QDP FILE: {qdp}')
         with open(qdp, 'r') as f:
-            data = f.read().splitlines()
-            data = data[data.index('!')+1:]
-            data = np.array([[
-                float(value) for value in values.split(',')] for values in data])
+            skiprows = f.read().splitlines().index('!')+1
+        data = np.loadtxt(qdp, dtype=float, delimiter=' ', skiprows=skiprows, unpack=True)
         self.debug('END', inspect.currentframe())
-        return data[:, 0], data[:, 1], data[:, 2], data[:, 3]
+        return (d for d in data)
 
     def entry_paramter(self) -> List[CurveFitParameter]:
         param_list = list()
