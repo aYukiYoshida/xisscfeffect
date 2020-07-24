@@ -161,6 +161,7 @@ class CurveFit(Common):
         spl.axes[0].legend(fontsize=spl.legfsize, loc='upper left',
                            scatterpoints=1, numpoints=1, markerscale=0.7, handletextpad=0.,
                            fancybox=True, framealpha=0.0, frameon=True)
+        spl.axes[0].set_ylim(6.52, 6.7)
 
         # residual
         spl.axes[1].errorbar(
@@ -174,11 +175,11 @@ class CurveFit(Common):
         spl.axes[1].set_ylabel('residual', fontsize=spl.fsize)
         spl.axes[1].set_xlabel(r'Event density $({\rm events}\:{\rm frame}^{-1}\:{\rm pixel}^{-1}$)',
                                fontsize=spl.fsize)
-        spl.axes[1].set_ylim(-3E-2, 3E-2)
+        spl.axes[1].set_ylim(-3.5E-2, 3.5E-2)
 
         for ax in spl.axes:
             ax.set_xscale('log')
-            ax.set_xlim(8E-5, 3E-2)
+            ax.set_xlim(3E-5, 4E-2)
             ax.yaxis.set_major_locator(ticker.MultipleLocator(0.02))
             ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%4.2f'))
             ax.yaxis.set_minor_locator(ticker.MultipleLocator(0.01))
