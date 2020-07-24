@@ -162,6 +162,9 @@ class CurveFit(Common):
                            scatterpoints=1, numpoints=1, markerscale=0.7, handletextpad=0.,
                            fancybox=True, framealpha=0.0, frameon=True)
         spl.axes[0].set_ylim(6.52, 6.7)
+        spl.axex[0].yaxis.set_major_locator(ticker.MultipleLocator(0.04))
+        spl.axex[0].yaxis.set_major_formatter(ticker.FormatStrFormatter('%4.2f'))
+        spl.axex[0].yaxis.set_minor_locator(ticker.MultipleLocator(0.02))
 
         # residual
         spl.axes[1].errorbar(
@@ -176,13 +179,13 @@ class CurveFit(Common):
         spl.axes[1].set_xlabel(r'Event density $({\rm events}\:{\rm frame}^{-1}\:{\rm pixel}^{-1}$)',
                                fontsize=spl.fsize)
         spl.axes[1].set_ylim(-3.5E-2, 3.5E-2)
+        spl.axex[1].yaxis.set_major_locator(ticker.MultipleLocator(0.02))
+        spl.axex[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%4.2f'))
+        spl.axex[1].yaxis.set_minor_locator(ticker.MultipleLocator(0.01))
 
         for ax in spl.axes:
             ax.set_xscale('log')
             ax.set_xlim(3E-5, 4E-2)
-            ax.yaxis.set_major_locator(ticker.MultipleLocator(0.02))
-            ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%4.2f'))
-            ax.yaxis.set_minor_locator(ticker.MultipleLocator(0.01))
             ax.xaxis.set_major_locator(ticker.LogLocator(base=10))
             ax.yaxis.set_label_coords(-0.11, 0.5)
 
