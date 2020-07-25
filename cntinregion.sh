@@ -1,20 +1,18 @@
-#!/bin/bash
-command=`basename $0`
+#!/bin/bash -u
 
-################################################
-###                                          ###
-### Search Counts in Region (ds9 & funtools) ###
-###                                          ###
-################################################
+SCRIPTFILE=$0
+[ -L ${SCRIPTFILE} ] && SCRIPTFILE=$(readlink $0)
+SCRIPTNAME=$(basename ${SCRIPTFILE})
+AUTHOR="Y.Yoshida"
 
 ################################################################################
 ## FUNCTIONS
 ################################################################################
 
 usage(){
-    echo "USAGE   : ${command} <IMAGE FITS> <REGION FITS>"
-    echo "EXAMPLE : ${command} xis0.img xis0_src.reg"
-
+    echo "USAGE   : ${SCRIPTNAME} <IMAGE FITS> <REGION>"
+    echo "EXAMPLE : ${SCRIPTNAME} xis0.img xis0_src.reg"
+    echo ""
     echo "OUTPUT FORMAT"
     echo "  <COUNTS> <ERROR> <PIXEL>"
     exit 0
@@ -23,11 +21,11 @@ usage(){
 ################################################################################
 ## OPTIONS
 ################################################################################
-GETOPT=`getopt -q -o u: -- "$@"` ; [ $? != 0 ] && usage
+GETOPT=`getopt -q -o u -l usage -- "$@"` ; [ $? != 0 ] && usage
 eval set -- "$GETOPT"
 while true ;do
     case $1 in
-        -u) usage
+        -u|--usage) usage
             ;;
         --) shift ; break 
             ;;

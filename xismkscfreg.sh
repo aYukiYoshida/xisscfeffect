@@ -1,26 +1,14 @@
-#!/usr/bin/zsh
+#!/bin/bash -u
 
-###############################################
-##    Make Annulus Regions for SCF Effect    ##
-###############################################
-
-
-################################################################################
-## Update
-################################################################################
-# Version  | Date       | Author   | Description
-#-------------------------------------------------------------------------------
-# 1.0      | 2013.03.XX | yyoshida | prototype
-# 2.0      | 2020.04.12 | yyoshida | redrawn
-#
+## Make Annulus Regions for SCF Effect
 
 ################################################################################
 ## VARIABLES
 ################################################################################
-
-SCRIPTNAME=`basename $0`
-VERSION="3.0"
-AUTHER="Y.Yoshida"
+SCRIPTFILE=$0
+[ -L ${SCRIPTFILE} ] && SCRIPTFILE=$(readlink $0)
+SCRIPTNAME=$(basename ${SCRIPTFILE})
+AUTHOR="Y.Yoshida"
 LOG_LEVEL_CRITERIA=1
 COMMAND_NOT_FOUND=0
 
@@ -28,10 +16,9 @@ COMMAND_NOT_FOUND=0
 ################################################################################
 ## FUNCTIONS
 ################################################################################
-
 title(){
     echo "${SCRIPTNAME} -- Make annulus regions for SCF effect of XIS"
-    echo "version ${VERSION} written by ${AUTHOR}"
+    echo "Written by ${AUTHOR}"
     echo ""
 }
 
@@ -156,7 +143,6 @@ make_extreme_circle_region(){
     echo "physical" >> ${outputreg}
     echo "circle(${skyx},${skyy},${radius_pixel})" >> ${outputreg}
     logger 0 "Make region: `basename ${outputreg}`"
-    
 }
 
 
@@ -175,13 +161,12 @@ make_innermost_region(){
     local skyy=$4
     local each_count=$5
     local img=$6
-    local outermost_radius=`echo ${outermost_radius_arcmin}|awk '{printf "%d\n",$1*100}'`
     local number=1
 
     logger 1 "Make region: ${number} / ${regnum}"
     [ -e ${outputreg} ]&&rm -f ${outputreg}
-    for r in {10..${outermost_radius}} ;do
-        local radius_pixel=`awk -v r=${r} 'BEGIN{printf "%5.2f",r*57.53/100}'`
+    for r in $(seq 0.1 0.01 ${outermost_radius_arcmin}) ;do
+        local radius_pixel=`awk -v r=${r} 'BEGIN{printf "%f",r*57.53}'`
         cat /dev/null > ${outputreg}
         echo "# Region file format: DS9" >> ${outputreg}
         echo "physical" >> ${outputreg}
@@ -189,8 +174,7 @@ make_innermost_region(){
         local test_count=`cntinregion.sh ${img} ${outputreg}|awk '{print $1}'`
         local flag=`check_count_for_each_region ${test_count} ${each_count}`
         if [ ${flag} -eq 1 ];then
-            radius_arcmin=`echo ${r}|awk '{print $1/100}'`
-            logger 1 "  Determined radius: ${radius_arcmin} arcmin"
+            logger 1 "  Determined radius: ${r} arcmin"
             logger 1 "  Count in region: ${test_count} (reference: ${each_count})"
             break
         else
@@ -207,20 +191,18 @@ make_annulus_region(){
     local skyy=$4
     local each_count=$5
     local img=$6
-    local inner_radius_limit=`echo ${innermost_radius_arcmin}|awk '{printf "%d\n",$1*100}'` # arcmin * 100
-    local outer_radius_limit=`echo ${outermost_radius_arcmin}|awk '{printf "%d\n",$1*100}'` # arcmin * 100
     local number=$(expr ${regnum} - 1)
-    for i in {2..${number}} ;do
+    for i in $(seq 2 ${number}) ;do
         logger 1 "Make region: ${i} / ${regnum}"
-        logger 0 "inner_radius_limit=${inner_radius_limit}"
+        logger 0 "innermost_radius_arcmin=${innermost_radius_arcmin}"
 
         local outputreg=${anadir}/reg/scf/x${id}_circle${i}.reg
         [ -e ${outputreg} ]&&rm -f ${outputreg}
 
-        local inner_radius_pixel=`awk -v r=${inner_radius_limit} 'BEGIN{printf "%5.2f",r*57.53/100}'`
+        local inner_radius_pixel=`awk -v r=${innermost_radius_arcmin} 'BEGIN{printf "%f",r*57.53}'`
 
-        for r in {${inner_radius_limit}..${outer_radius_limit}} ;do
-            local outer_radius_pixel=`awk -v r=${r} 'BEGIN{printf "%5.2f",r*57.53/100}'`
+        for r in $(seq ${innermost_radius_arcmin} 0.01 ${outermost_radius_arcmin}) ;do
+            local outer_radius_pixel=`awk -v r=${r} 'BEGIN{printf "%f",r*57.53}'`
             cat /dev/null > ${outputreg}
             echo "# Region file format: DS9" >> ${outputreg}
             echo "physical" >> ${outputreg}
@@ -228,12 +210,10 @@ make_annulus_region(){
             local test_count=`cntinregion.sh ${img} ${outputreg}|awk '{print $1}'`
             local flag=`check_count_for_each_region ${test_count} ${each_count}`
             if [ ${flag} -eq 1 ];then
-                inner_radius_arcmin=`echo ${inner_radius_limit}|awk '{print $1/100}'`
-                outer_radius_arcmin=`echo ${r}|awk '{print $1/100}'`
-                logger 1 "  Determined inner radius: ${inner_radius_arcmin} arcmin"
-                logger 1 "  Determined outer radius: ${outer_radius_arcmin} arcmin"
+                logger 1 "  Determined inner radius: ${innermost_radius_arcmin} arcmin"
+                logger 1 "  Determined outer radius: ${r} arcmin"
                 logger 1 "  Count in region: ${test_count} (reference: ${each_count})"
-                inner_radius_limit=${r}
+                local innermost_radius_arcmin=${r}
                 break
             else
                 /bin/rm -f ${outputreg}
@@ -308,6 +288,8 @@ else
     var6=$6 #;echo ${var6}
 fi
 
+IFS_ORG=$IFS
+
 for var in ${var1} ${var2} ${var3} ${var4} ${var5} ${var6};do
     IFS="="
     set -- ${var}
@@ -325,6 +307,8 @@ for var in ${var1} ${var2} ${var3} ${var4} ${var5} ${var6};do
         *) abort InvalidInput;;
     esac
 done 
+
+IFS=$IFS_ORG
 
 
 ##------------------------------------------------------------------------------
@@ -407,7 +391,7 @@ make_innermost_region ${region1} ${extreme_radius_arcmin} ${skyx} ${skyy} ${each
 
 ## Make annulas region (No.2 - No.(${regnum}-1))
 innermost_radius_pixel=`sed -n '/circle/p' ${region1}|sed 's/)//g'|cut -d',' -f3`
-innermost_radius_arcmin=`awk -v r=${innermost_radius_pixel} 'BEGIN{printf "%5.3f\n",r/57.53}'`
+innermost_radius_arcmin=`echo ${innermost_radius_pixel}|awk '{printf "%f\n",$1/57.53}'`
 make_annulus_region ${innermost_radius_arcmin} ${extreme_radius_arcmin} ${skyx} ${skyy} ${each_count} ${all_grade_image}
 
 ## Make outermost annulas region
