@@ -1,7 +1,7 @@
-CFLAGS = -O3 -Wall -g -lm
+CFLAGS = -O3 -Wall -Wno-unused-result -g -lm 
 TARGET = pigaincorrect
 
-pigaincorrect: pigaincorrect.c
+pigaincorrect: src/pigaincorrect/pigaincorrect.c
 	gcc $^ -o $@ $(CFLAGS)
 
 all: $(TARGET)

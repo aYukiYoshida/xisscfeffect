@@ -1,8 +1,8 @@
 #include "pigaincorrect.h"
 
 int main(int argc, char *argv[]){
-    int i,ii,j,jj,k,l,m=0,n=0;
-    int s,t,u,p,q;
+    int i,j,k,l,m=0,n=0;
+    int s,t,u;
     int row[NUM],ch[NUM],cnt1[NUM],out[NUM]; //cnt1[NUM]:������
     int R;
     char *input_data, *output_data;

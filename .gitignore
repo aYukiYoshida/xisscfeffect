@@ -145,4 +145,5 @@ static
 
 # original
 pigaincorrect
+!/src/pigaincorrect
 dev*.ipynb
