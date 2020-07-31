@@ -58,7 +58,8 @@ class CurveFitParameter(object):
 class CurveFit(Common):
     IMAGE_FILE_TYPE = 'pdf'
     IMAGE_FILE_DPI = DPI
-    DUMMY_ENERGY = np.logspace(-5, -1, 100)
+    DUMMY_DATA_SIZE = 500
+    DUMMY_ENERGY = np.logspace(-5, -1, DUMMY_DATA_SIZE)
 
     def __init__(self, qdp: str, image_out_flag: bool = False, loglv: int = 1) -> None:
         super().__init__(loglv)
@@ -68,13 +69,13 @@ class CurveFit(Common):
         self.xd, self.xe, self.yd, self.ye = self.read_qdp(qdp)
         self.scf_model = lf.Model(func=scf_curve, independent_vars=['E'])
 
-    def read_qdp(self, qdp: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        self.debug('START', inspect.currentframe())
+    def read_qdp(self, qdp: str) -> List:
         self.info(f'READ QDP FILE: {qdp}')
         with open(qdp, 'r') as f:
-            skiprows = f.read().splitlines().index('!')+1
-        data = np.loadtxt(qdp, dtype=float, delimiter=' ', skiprows=skiprows, unpack=True)
-        self.debug('END', inspect.currentframe())
+            self.raw_data: List = f.read().splitlines()
+        skiprows = self.raw_data.index('!')+1
+        data = np.loadtxt(qdp, dtype=float, delimiter=' ',
+                          skiprows=skiprows, unpack=True)
         return (d for d in data)
 
     def entry_paramter(self) -> List[CurveFitParameter]:
@@ -85,13 +86,14 @@ class CurveFit(Common):
             self.info(', '.join(
                 [f'{p} ({k})' for p, k in CurveFitParameter.PROPERTIES.items()]))
             for name in self.scf_model.param_names:
-                self.info(f'for {name}')
+                print(f'{name}', end=' >>> ')
                 entry = input()
                 values = tuple(
                     modifier(float(v.strip())) for v, modifier in zip(
                         entry.split(','), CurveFitParameter.MODIFIERS))
                 params = dict(zip(CurveFitParameter.PROPERTIES.keys(), values))
                 param_list.append(CurveFitParameter(name=name, **params))
+            print('\n')
         except ValueError:
             raise InvalidInputError('Input parameter is invalid')
         except TypeError:
@@ -135,11 +137,31 @@ class CurveFit(Common):
                 f' Chi-squared value / d.o.f. = {self.result.chisqr} / {self.result.nfree}\n')
             log.write(f' Reduced Chi-squared value  = {self.result.redchi}\n')
             log.write('\n')
-        self.info(f'Fitting results were recorded to {log_file}.')
+        self.info(f'Fitting results were recorded to {log_file}')
+        self.create_result_qdp()
         self.plot()
         self.debug('END', inspect.currentframe())
 
-    def plot(self):
+    @property
+    def result_curve(self):
+        return scf_curve(E=self.DUMMY_ENERGY, **self.result.best_values)
+
+    def create_result_qdp(self) -> None:
+        self.debug('START', inspect.currentframe())
+        qdp_file = f'{self.file_prefix}_result.qdp'
+        self.raw_data.append('NO NO NO NO')
+        header = '\n'.join(self.raw_data)
+        result = np.array([
+            self.DUMMY_ENERGY,
+            np.zeros(self.DUMMY_DATA_SIZE),
+            self.result_curve,
+            np.zeros(self.DUMMY_DATA_SIZE)])
+        np.savetxt(fname=qdp_file, X=result.T,
+                   delimiter=' ', newline='\n', header=header, comments='')
+        self.info(f'{qdp_file} is generated')
+        self.debug('END', inspect.currentframe())
+
+    def plot(self) -> None:
         self.debug('START', inspect.currentframe())
         spl = SimplePlot(configure=True,
                          figsize=(8, 6), nrows=2, height_ratios=[0.7, 0.3], fsize=20,
@@ -155,15 +177,16 @@ class CurveFit(Common):
                              color=spl.colors.orange, ecolor=spl.colors.orange,
                              capsize=0.0, elinewidth=spl.lwidth, mec=spl.colors.orange,
                              label=f'{self.property.phase}')
-        spl.axes[0].plot(self.DUMMY_ENERGY, scf_curve(E=self.DUMMY_ENERGY, **self.result.best_values),
+        spl.axes[0].plot(self.DUMMY_ENERGY, self.result_curve,
                          lw=spl.lwidth, ls=':', color=spl.colors.orange)
         spl.axes[0].set_ylabel('Energy (keV)', fontsize=spl.fsize)
         spl.axes[0].legend(fontsize=spl.legfsize, loc='upper left',
                            scatterpoints=1, numpoints=1, markerscale=0.7, handletextpad=0.,
                            fancybox=True, framealpha=0.0, frameon=True)
-        spl.axes[0].set_ylim(6.52, 6.7)
+        # spl.axes[0].set_ylim(6.52, 6.7)
         spl.axes[0].yaxis.set_major_locator(ticker.MultipleLocator(0.04))
-        spl.axes[0].yaxis.set_major_formatter(ticker.FormatStrFormatter('%4.2f'))
+        spl.axes[0].yaxis.set_major_formatter(
+            ticker.FormatStrFormatter('%4.2f'))
         spl.axes[0].yaxis.set_minor_locator(ticker.MultipleLocator(0.02))
 
         # residual
@@ -180,7 +203,8 @@ class CurveFit(Common):
                                fontsize=spl.fsize)
         spl.axes[1].set_ylim(-3.5E-2, 3.5E-2)
         spl.axes[1].yaxis.set_major_locator(ticker.MultipleLocator(0.02))
-        spl.axes[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%4.2f'))
+        spl.axes[1].yaxis.set_major_formatter(
+            ticker.FormatStrFormatter('%4.2f'))
         spl.axes[1].yaxis.set_minor_locator(ticker.MultipleLocator(0.01))
 
         for ax in spl.axes:
