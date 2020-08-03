@@ -214,7 +214,7 @@ class CurveFit(Common):
             ax.yaxis.set_label_coords(-0.11, 0.5)
 
         if self.image_out_flag:
-            image_file = f'{self.file_prefix}.{self.IMAGE_FILE_TYPE}'
+            image_file = f'{self.file_prefix}_result.{self.IMAGE_FILE_TYPE}'
             spl.fig.savefig(image_file, format=self.IMAGE_FILE_TYPE,
                             bbox_inches='tight', dpi=self.IMAGE_FILE_DPI, transparent=True)
             self.info(f'{image_file} is generated')
