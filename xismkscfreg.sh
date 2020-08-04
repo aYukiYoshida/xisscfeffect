@@ -150,11 +150,10 @@ make_whole_circle_region(){
 }
 
 
-check_count_for_each_region(){
+is_count_greater_equal_average_count(){
     local test=$1
     local each=$2
-    awk -v t=${test} -v e=${each} 'BEGIN{th=e*0.03;if( e-th < t && t <= e+th) 
-	print "1";else print "0"}'
+    echo ${test} ${each}|awk '{if($1>=$2)print "1";else print "0"}'
 }
 
 
@@ -190,7 +189,7 @@ make_annulus_region(){
         for test_outer_radius_arcmin in $(seq ${inner_radius_arcmin} 0.01 ${outer_radius_arcmin}) ;do
             write_annulus_region ${output_region} ${inner_radius_arcmin} ${test_outer_radius_arcmin} ${skyx} ${skyy}
             local test_count=$(cntinregion.sh ${image} ${output_region}|awk '{print $1}')
-            local flag=$(check_count_for_each_region ${test_count} ${each_count})
+            local flag=$(is_count_greater_equal_average_count ${test_count} ${each_count})
             if [ ${flag} -eq 1 ];then
                 break
             else
