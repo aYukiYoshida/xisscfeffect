@@ -6,21 +6,21 @@ import sys
 from absl import app
 from absl import flags
 
-import src
+import src as scf
 
 
 def main(argv):
     if flag_values.debug:
         flag_values.loglv = 0
-    cf = src.CurveFit(
-        qdp=flag_values.qdp, image_out_flag=flag_values.imaging, loglv=flag_values.loglv)
+    cf:Union[scf.SingleCurveFit, scf.MultipleCurveFit] = scf.CurveFitFactory.get_instance(
+        qdp_list=flag_values.qdp, image_out_flag=flag_values.imaging, loglv=flag_values.loglv)
     cf.fit()
 
 
 def define_flags():
     flag_values = flags.FLAGS
-    flags.DEFINE_string(
-        'qdp', None, 'Path to qdp file')
+    flags.DEFINE_list(
+        'qdp', None, 'Path to qdp file(s). If multiple files, input comma-separated list of strings.')
     flags.DEFINE_boolean(
         'imaging', False, 'create figure file.', short_name='i')
     flags.DEFINE_boolean(
