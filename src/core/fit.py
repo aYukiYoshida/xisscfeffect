@@ -100,14 +100,6 @@ class AbstractCurveFit(object, metaclass=ABCMeta):
     def create_result_qdp(self):
         pass
 
-    def read_qdp(self, qdp:str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        with open(qdp, 'r') as f:
-            self.raw_data: List = f.read().splitlines()
-        skiprows = self.raw_data.index('!')+1
-        data = np.loadtxt(qdp, dtype=float, delimiter=' ',
-                        skiprows=skiprows, unpack=True)
-        return tuple(d for d in data)
-
 class SingleCurveFit(Common, AbstractCurveFit):
     def __init__(self, qdp: str, image_out_flag: bool = False, loglv: int = 1) -> None:
         super().__init__(loglv)
@@ -116,6 +108,12 @@ class SingleCurveFit(Common, AbstractCurveFit):
         self.property: ObjectLikeDict = get_file_property(qdp)
         self.xd, self.xe, self.yd, self.ye = self.read_qdp(qdp)
         self.scf_model = lf.Model(func=scf_curve, independent_vars=['E'])
+
+    def read_qdp(self, qdp:str) -> np.ndarray:
+        with open(qdp, 'r') as f:
+            self.raw_data: List = f.read().splitlines()
+        skiprows = self.raw_data.index('!')+1
+        return np.loadtxt(qdp, dtype=float, delimiter=' ', skiprows=skiprows, unpack=True)
 
     def entry_parameter(self) -> List[CurveFitParameter]:
         param_list = list()
@@ -275,7 +273,20 @@ class MultipleCurveFit(Common, AbstractCurveFit):
         self.scf_model_parameters = lf.Parameters()
 
     def read_multiple_qdp(self, qdp_list:List[str]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        datasets = np.array([np.array(list(self.read_qdp(qdp))) for qdp in qdp_list])
+        datasets = list()
+        self.raw_data = list()
+        for n in range(self.ndata):
+            with open(qdp_list[n], 'r') as f:
+                qdp: List = f.read().splitlines()
+            skiprows = qdp.index('!')+1
+            if n == 0:
+                # header
+                self.raw_data.extend(qdp[:skiprows])
+            self.raw_data.extend(qdp[skiprows:])
+            self.raw_data.append('NO NO NO NO')
+
+            datasets.append(np.loadtxt(qdp_list[n], dtype=float, delimiter=' ',
+                skiprows=skiprows, unpack=True))
         return tuple(np.array([dataset[i,:] for dataset in datasets]) for i in range(4))
 
     def entry_parameter(self) -> List[CurveFitParameter]:
@@ -360,8 +371,24 @@ class MultipleCurveFit(Common, AbstractCurveFit):
             self.info(f'Fitting results were recorded to {log_file}')
         self.debug('END', inspect.currentframe())
     
-    def plot(self):
-        self.info('No implement')
-    
     def create_result_qdp(self):
-        self.info('No implement')
+        self.debug('START', inspect.currentframe())
+        qdp_file = f'{self.file_prefix}_result.qdp'
+        header = '\n'.join(self.raw_data)
+        scf_curve(E,
+            **dict((
+                name,
+                parameters[f'{name}_{n}']) for name in self.scf_model.param_names))
+
+        result = np.array([
+            self.DUMMY_ENERGY,
+            np.zeros(self.DUMMY_DATA_SIZE),
+            self.result_curve,
+            np.zeros(self.DUMMY_DATA_SIZE)])
+        np.savetxt(fname=qdp_file, X=result.T,
+                   delimiter=' ', newline='\n', header=header, comments='')
+        self.info(f'{qdp_file} is generated')
+        self.debug('END', inspect.currentframe())
+
+    def plot(self):
+        self.warning('No implement', inspect.currentframe())
