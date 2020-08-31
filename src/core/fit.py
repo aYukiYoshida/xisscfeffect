@@ -365,27 +365,48 @@ class MultipleCurveFit(Common, AbstractCurveFit):
                 log.write(f' Reduced Chi-squared value  = {self.result.redchi}\n')
                 log.write('\n')
             self.info(f'Fitting results were recorded to {log_file}')
+            self.create_result_qdp()
+            self.plot()
         self.debug('END', inspect.currentframe())
-    
+
+    @property
+    def result_curve(self) -> List:
+        return [
+            scf_curve(
+                E=self.DUMMY_ENERGY,
+                **dict((
+                    param_name,
+                    self.result.params[f'{param_name}_{n}']) 
+                for param_name in self.scf_model.param_names)
+            )
+        for n in range(self.ndata) ]
+
+    @property
+    def result_residuals(self) -> List:
+        return [
+            self.yd[n] - scf_curve(
+                E=self.xd[n],
+                **dict((
+                    param_name,
+                    self.result.params[f'{param_name}_{n}']) 
+                for param_name in self.scf_model.param_names)
+            )
+        for n in range(self.ndata) ]
+
+
     def create_result_qdp(self):
         self.debug('START', inspect.currentframe())
         for n, raw_name, raw_data in zip(
             range(self.ndata), self.raw_data.keys(), self.raw_data.values()):
 
-            qdp_file = f'{os.path.basename(raw_name)}_result.qdp'
-            header = '\n'.join(raw_data.append('NO NO NO NO'))
-
-            result_curve = scf_curve(
-                E=self.DUMMY_ENERGY,
-                **dict((
-                    param_name,
-                    self.result.params[f'{param_name}_{n}']) 
-                for param_name in self.scf_model.param_names))
+            qdp_file = f'{get_file_prefix(raw_name)}_result.qdp'
+            raw_data.append('NO NO NO NO')
+            header = '\n'.join(raw_data)
 
             result = np.array([
                 self.DUMMY_ENERGY,
                 np.zeros(self.DUMMY_DATA_SIZE),
-                result_curve,
+                self.result_curve[n],
                 np.zeros(self.DUMMY_DATA_SIZE)])
             np.savetxt(fname=qdp_file, X=result.T,
                 delimiter=' ', newline='\n', header=header, comments='')
@@ -393,4 +414,71 @@ class MultipleCurveFit(Common, AbstractCurveFit):
         self.debug('END', inspect.currentframe())
 
     def plot(self):
-        self.warning('No implement', inspect.currentframe())
+        self.debug('START', inspect.currentframe())
+        spl = SimplePlot(configure=True,
+                         figsize=(8, 6), nrows=2, height_ratios=[0.7, 0.3], fsize=20,
+                         left=0.15, right=0.95, bottom=0.15, top=0.9)
+
+        spl.fig.suptitle(f'{self.property.xis}',
+                         x=0.53, y=0.93,
+                         fontsize=spl.fsize, va=spl.valign, ha=spl.halign)
+
+        # data & best-fit model
+        for n, color in zip(range(self.ndata), spl.colors.values()):
+            # data
+            spl.axes[0].errorbar(
+                x=self.xd[n], y=self.yd[n],
+                xerr=self.xe[n], yerr=self.ye[n],
+                marker=spl.marker, ms=spl.masize, fmt=spl.pltfmt,
+                color=color, ecolor=color, mec=color,
+                capsize=0.0, elinewidth=spl.lwidth,
+                label=f'{self.property.phase[n]}')
+            # model
+            spl.axes[0].plot(self.DUMMY_ENERGY, self.result_curve[n],
+                lw=spl.lwidth, ls=':', color=color)
+            # residual
+            spl.axes[1].errorbar(
+                x=self.xd[n], y=self.result_residuals[n],
+                xerr=self.xe[n], yerr=self.ye[n],
+                marker=spl.marker, ms=spl.masize, fmt=spl.pltfmt,
+                color=color, ecolor=color, mec=color,
+                capsize=0.0, elinewidth=spl.lwidth)
+
+        spl.axes[0].set_ylabel('Energy (keV)', fontsize=spl.fsize)
+        spl.axes[0].legend(fontsize=spl.legfsize, loc='upper left',
+            scatterpoints=1, numpoints=1, markerscale=0.7, handletextpad=0.,
+            fancybox=True, framealpha=0.0, frameon=True)
+        # spl.axes[0].set_ylim(6.52, 6.7)
+        spl.axes[0].yaxis.set_major_locator(ticker.MultipleLocator(0.04))
+        spl.axes[0].yaxis.set_major_formatter(
+            ticker.FormatStrFormatter('%4.2f'))
+        spl.axes[0].yaxis.set_minor_locator(ticker.MultipleLocator(0.02))
+
+        spl.axes[1].axhline(y=0.0, color=spl.colors.black,
+                            ls=spl.lstyle, lw=spl.lwidth, dashes=[2, 5])
+        spl.axes[1].set_ylabel('residual', fontsize=spl.fsize)
+        spl.axes[1].set_xlabel(r'Event density $({\rm events}\:{\rm frame}^{-1}\:{\rm pixel}^{-1}$)',
+                               fontsize=spl.fsize)
+        # spl.axes[1].set_ylim(-3.5E-2, 3.5E-2)
+        spl.axes[1].yaxis.set_major_locator(ticker.MultipleLocator(0.05))
+        spl.axes[1].yaxis.set_major_formatter(
+            ticker.FormatStrFormatter('%4.2f'))
+        spl.axes[1].yaxis.set_minor_locator(ticker.MultipleLocator(0.025))
+
+        for ax in spl.axes:
+            ax.set_xscale('log')
+            ax.set_xlim(3E-5, 4E-2)
+            ax.xaxis.set_major_locator(ticker.LogLocator(base=10))
+            ax.yaxis.set_label_coords(-0.11, 0.5)
+
+        if self.image_out_flag:
+            image_file = f'{self.file_prefix}_result.{self.IMAGE_FILE_TYPE}'
+            spl.fig.savefig(image_file, format=self.IMAGE_FILE_TYPE,
+                            bbox_inches='tight', dpi=self.IMAGE_FILE_DPI, transparent=True)
+            self.info(f'{image_file} is generated')
+            plt.close(spl.fig)
+        else:
+            plt.pause(1.0)
+            plt.show()
+
+        self.debug('END', inspect.currentframe())
