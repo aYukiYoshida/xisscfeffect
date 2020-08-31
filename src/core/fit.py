@@ -128,7 +128,7 @@ class SingleCurveFit(Common, AbstractCurveFit):
                 print(f'{name}', end=' >>> ')
                 entry = input()
                 values = tuple(
-                    modifier(v.strip()) for v, modifier in zip(
+                    modifier(float(v.strip())) for v, modifier in zip(
                         entry.split(','), CurveFitParameter.MODIFIERS))
                 params = dict(zip(CurveFitParameter.PROPERTIES.keys(), values))
                 param_list.append(CurveFitParameter(name=name, **params))
@@ -155,7 +155,6 @@ class SingleCurveFit(Common, AbstractCurveFit):
         self.set_parameter()
         self.result = self.scf_model.fit(
             E=self.xd, data=self.yd, weights=self.ye**(-1), method='leastsq')
-        best_parameter = self.result.best_values
         self.debug(self.result.best_values)
 
         self.info('BEST FIT VALUES')
@@ -290,12 +289,12 @@ class MultipleCurveFit(Common, AbstractCurveFit):
                 for name in self.scf_model.param_names:
                     if (n > 0) & (name in self.scf_model.param_names[1:]):
                         param_list.append(CurveFitParameter(
-                            name=f'{name}_{n}', value=0, vary=True, min=0, max=1.E+10, expr=f'{name}_0'))
+                            name=f'{name}_{n}', value=0, vary=False, min=0, max=1.E+10, expr=f'{name}_0'))
                     else:
                         print(f'{name}_{n} ({self.property.phase[n]})', end=' >>> ')
                         entry = input()
                         values = tuple(
-                            modifier(v.strip()) for v, modifier in zip(
+                            modifier(float(v.strip())) for v, modifier in zip(
                                 entry.split(','), CurveFitParameter.MODIFIERS))
                         params = dict(zip(CurveFitParameter.PROPERTIES.keys(), values))
                         param_list.append(CurveFitParameter(name=f'{name}_{n}', **params))
@@ -325,8 +324,10 @@ class MultipleCurveFit(Common, AbstractCurveFit):
     def objective(self, parameters:lf.Parameters, E:np.ndarray):
         """Calculate total residual for fits of models to several data sets."""
         # make residual per data set
+        residual = 0.0 * self.yd
+
         for n in range(self.ndata):
-            residual = (self.yd - self.calculate_model(parameters, n, E))*self.ye**(-2)
+            residual[n,:] = (self.yd[n,:] - self.calculate_model(parameters, n, E[n,:]))*self.ye[n,:]**(-2)
 
         # now flatten this to a 1D array, as minimize() needs
         return residual.flatten()
