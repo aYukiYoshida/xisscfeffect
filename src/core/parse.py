@@ -5,6 +5,7 @@ import re
 from typing import List
 
 from ..util.object import ObjectLikeDict
+from ..util.error import InvalidInputError
 
 
 def get_file_prefix(name: str) -> str:
@@ -12,7 +13,7 @@ def get_file_prefix(name: str) -> str:
 
 def get_unified_file_prefix(names: List[str]) -> str:
     prefixes = set(
-        re.sub('0[1-9]_0[1-9]', 'all', prefix) for prefix in [
+        re.sub('0[1-9]_0[1-9]', 'multi', prefix) for prefix in [
             get_file_prefix(name) for name in names ])
     if len(prefixes) == 1:
         return list(prefixes)[0]
