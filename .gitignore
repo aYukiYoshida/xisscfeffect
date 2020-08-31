@@ -147,3 +147,5 @@ static
 pigaincorrect
 !/src/pigaincorrect
 dev*.ipynb
+data
+out
