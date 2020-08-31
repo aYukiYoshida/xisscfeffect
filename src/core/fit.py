@@ -274,18 +274,14 @@ class MultipleCurveFit(Common, AbstractCurveFit):
 
     def read_multiple_qdp(self, qdp_list:List[str]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         datasets = list()
-        self.raw_data = list()
-        for n in range(self.ndata):
-            with open(qdp_list[n], 'r') as f:
-                qdp: List = f.read().splitlines()
-            skiprows = qdp.index('!')+1
-            if n == 0:
-                # header
-                self.raw_data.extend(qdp[:skiprows])
-            self.raw_data.extend(qdp[skiprows:])
-            self.raw_data.append('NO NO NO NO')
+        self.raw_data = dict()
+        for qdp in qdp_list:
+            with open(qdp, 'r') as f:
+                raw_data: List = f.read().splitlines()
+            skiprows = raw_data.index('!')+1
+            self.raw_data[qdp] = raw_data
 
-            datasets.append(np.loadtxt(qdp_list[n], dtype=float, delimiter=' ',
+            datasets.append(np.loadtxt(qdp, dtype=float, delimiter=' ',
                 skiprows=skiprows, unpack=True))
         return tuple(np.array([dataset[i,:] for dataset in datasets]) for i in range(4))
 
@@ -373,21 +369,27 @@ class MultipleCurveFit(Common, AbstractCurveFit):
     
     def create_result_qdp(self):
         self.debug('START', inspect.currentframe())
-        qdp_file = f'{self.file_prefix}_result.qdp'
-        header = '\n'.join(self.raw_data)
-        scf_curve(E,
-            **dict((
-                name,
-                parameters[f'{name}_{n}']) for name in self.scf_model.param_names))
+        for n, raw_name, raw_data in zip(
+            range(self.ndata), self.raw_data.keys(), self.raw_data.values()):
 
-        result = np.array([
-            self.DUMMY_ENERGY,
-            np.zeros(self.DUMMY_DATA_SIZE),
-            self.result_curve,
-            np.zeros(self.DUMMY_DATA_SIZE)])
-        np.savetxt(fname=qdp_file, X=result.T,
-                   delimiter=' ', newline='\n', header=header, comments='')
-        self.info(f'{qdp_file} is generated')
+            qdp_file = f'{os.path.basename(raw_name)}_result.qdp'
+            header = '\n'.join(raw_data.append('NO NO NO NO'))
+
+            result_curve = scf_curve(
+                E=self.DUMMY_ENERGY,
+                **dict((
+                    param_name,
+                    self.result.params[f'{param_name}_{n}']) 
+                for param_name in self.scf_model.param_names))
+
+            result = np.array([
+                self.DUMMY_ENERGY,
+                np.zeros(self.DUMMY_DATA_SIZE),
+                result_curve,
+                np.zeros(self.DUMMY_DATA_SIZE)])
+            np.savetxt(fname=qdp_file, X=result.T,
+                delimiter=' ', newline='\n', header=header, comments='')
+            self.info(f'{qdp_file} is generated')
         self.debug('END', inspect.currentframe())
 
     def plot(self):
