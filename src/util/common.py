@@ -53,7 +53,7 @@ class Log(object):
         3: 'ERROR'}
 
     STRING_COLORS = {
-        0: StringColor.COLOR_DEFAULT,
+        0: StringColor.GREEN,
         1: StringColor.COLOR_DEFAULT,
         2: StringColor.YELLOW,
         3: StringColor.RED}
