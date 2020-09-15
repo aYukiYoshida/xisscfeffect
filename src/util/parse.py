@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
-from typing import List
 
-from ..util.object import ObjectLikeDict
-from ..util.error import InvalidInputError
+from .object import ObjectLikeDict
+from .error import InvalidInputError
 
 
 def get_file_prefix(name: str) -> str:

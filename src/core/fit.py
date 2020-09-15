@@ -14,10 +14,9 @@ from matplotlib import ticker
 from ..util.common import Common
 from ..util.error import InsufficientInputError, InvalidInputError
 from ..util.object import ObjectLikeDict
+from ..util.parse import get_file_prefix
 from .plot import DPI, SimplePlot
 from .model import energy_event_density_curve as scf_curve
-from .parse import get_file_prefix, get_file_property
-from .parse import get_unified_file_prefix, get_multiple_file_property
 
 
 class CurveFitParameter(object):
