@@ -100,18 +100,18 @@ class AbstractCurveFit(object, metaclass=ABCMeta):
         pass
 
 class SingleCurveFit(Common, AbstractCurveFit):
-    def __init__(self, qdp: str, image_out_flag: bool = False, loglv: int = 1) -> None:
+    def __init__(self, qdp:str, log_file:str, plot_flag:bool=True, loglv:int=1) -> None:
         super().__init__(loglv)
-        self.image_out_flag = image_out_flag
-        self.file_prefix = get_file_prefix(qdp)
-        self.property: ObjectLikeDict = get_file_property(qdp)
+        self.plot_flag = plot_flag
+        self.log_file = log_file
         self.xd, self.xe, self.yd, self.ye = self.read_qdp(qdp)
         self.scf_model = lf.Model(func=scf_curve, independent_vars=['E'])
 
     def read_qdp(self, qdp:str) -> np.ndarray:
         with open(qdp, 'r') as f:
-            self.raw_data: List = f.read().splitlines()
-        skiprows = self.raw_data.index('!')+1
+            raw_data = f.read().splitlines()
+        skiprows = raw_data.index('!')+1
+        self.raw_data = {qdp: raw_data}
         return np.loadtxt(qdp, dtype=float, delimiter=' ', skiprows=skiprows, unpack=True)
 
     def entry_parameter(self) -> List[CurveFitParameter]:
@@ -160,8 +160,7 @@ class SingleCurveFit(Common, AbstractCurveFit):
             self.info(
                 f'  {self.result.result.params[name].value} +- {self.result.result.params[name].stderr}')
 
-        log_file = f'{self.file_prefix}_result.log'
-        with open(log_file, 'w') as log:
+        with open(self.log_file, 'w') as log:
             log.write(
                 '--------------------------------------------------------------------\n')
             log.write(self.result.fit_report())
@@ -172,7 +171,7 @@ class SingleCurveFit(Common, AbstractCurveFit):
                 f' Chi-squared value / d.o.f. = {self.result.chisqr} / {self.result.nfree}\n')
             log.write(f' Reduced Chi-squared value  = {self.result.redchi}\n')
             log.write('\n')
-        self.info(f'Fitting results were recorded to {log_file}')
+        self.info(f'Fitting results were recorded to {self.log_file}')
         self.create_result_qdp()
         self.plot()
         self.debug('END', inspect.currentframe())
@@ -183,9 +182,12 @@ class SingleCurveFit(Common, AbstractCurveFit):
 
     def create_result_qdp(self) -> None:
         self.debug('START', inspect.currentframe())
-        qdp_file = f'{self.file_prefix}_result.qdp'
-        self.raw_data.append('NO NO NO NO')
-        header = '\n'.join(self.raw_data)
+        raw_name = list(self.raw_data.keys())[0]
+        raw_data = list(self.raw_data.values())[0]
+        qdp_file = f'{get_file_prefix(raw_name)}_result.qdp'
+
+        raw_data.append('NO NO NO NO')
+        header = '\n'.join(raw_data)
         result = np.array([
             self.DUMMY_ENERGY,
             np.zeros(self.DUMMY_DATA_SIZE),
@@ -202,16 +204,12 @@ class SingleCurveFit(Common, AbstractCurveFit):
                          figsize=(8, 6), nrows=2, height_ratios=[0.7, 0.3], fsize=20,
                          left=0.15, right=0.95, bottom=0.15, top=0.9)
 
-        spl.fig.suptitle(f'{self.property.xis}',
-                         x=0.53, y=0.93,
-                         fontsize=spl.fsize, va=spl.valign, ha=spl.halign)
-
         # data & best-fit model
         spl.axes[0].errorbar(x=self.xd, y=self.yd, xerr=self.xe, yerr=self.ye,
                              marker=spl.marker, ms=spl.masize, fmt=spl.pltfmt,
                              color=spl.colors.orange, ecolor=spl.colors.orange,
                              capsize=0.0, elinewidth=spl.lwidth, mec=spl.colors.orange,
-                             label=f'{self.property.phase}')
+                             label=f'{list(self.raw_data.keys())[0]}')
         spl.axes[0].plot(self.DUMMY_ENERGY, self.result_curve,
                          lw=spl.lwidth, ls=':', color=spl.colors.orange)
         spl.axes[0].set_ylabel('Energy (keV)', fontsize=spl.fsize)
@@ -248,24 +246,17 @@ class SingleCurveFit(Common, AbstractCurveFit):
             ax.xaxis.set_major_locator(ticker.LogLocator(base=10))
             ax.yaxis.set_label_coords(-0.11, 0.5)
 
-        if self.image_out_flag:
-            image_file = f'{self.file_prefix}_result.{self.IMAGE_FILE_TYPE}'
-            spl.fig.savefig(image_file, format=self.IMAGE_FILE_TYPE,
-                            bbox_inches='tight', dpi=self.IMAGE_FILE_DPI, transparent=True)
-            self.info(f'{image_file} is generated')
-            plt.close(spl.fig)
-        else:
+        if self.plot_flag:
             plt.pause(1.0)
             plt.show()
 
         self.debug('END', inspect.currentframe())
 
 class MultipleCurveFit(Common, AbstractCurveFit):
-    def __init__(self, qdp: List[str], image_out_flag: bool = False, loglv: int = 1) -> None:
+    def __init__(self, qdp:List[str], log_file:str, plot_flag:bool=True, loglv:int=1) -> None:
         super().__init__(loglv)
-        self.image_out_flag = image_out_flag
-        self.file_prefix = get_unified_file_prefix(qdp)
-        self.property: ObjectLikeDict = get_multiple_file_property(qdp)
+        self.plot_flag = plot_flag
+        self.log_file = log_file
         self.ndata = len(qdp)
         self.xd, self.xe, self.yd, self.ye = self.read_multiple_qdp(qdp)
         self.scf_model = lf.Model(func=scf_curve, independent_vars=['E'])
@@ -291,19 +282,19 @@ class MultipleCurveFit(Common, AbstractCurveFit):
             self.info('Enter the values separated by ","')
             self.info(', '.join(
                 [f'{p} ({k})' for p, k in CurveFitParameter.PROPERTIES.items()]))
-            for n in range(self.ndata):
-                for name in self.scf_model.param_names:
-                    if (n > 0) & (name in self.scf_model.param_names[1:]):
+            for n, raw_name in zip(range(self.ndata), self.raw_data.keys()):
+                for param_name in self.scf_model.param_names:
+                    if (n > 0) & (param_name in self.scf_model.param_names[1:]):
                         param_list.append(CurveFitParameter(
-                            name=f'{name}_{n}', value=0, vary=False, min=0, max=1.E+10, expr=f'{name}_0'))
+                            name=f'{param_name}_{n}', value=0, vary=False, min=0, max=1.E+10, expr=f'{param_name}_0'))
                     else:
-                        print(f'{name}_{n} ({self.property.phase[n]})', end=' >>> ')
+                        print(f'{param_name}_{n} (for {raw_name})', end=' >>> ')
                         entry = input()
                         values = tuple(
                             modifier(float(v.strip())) for v, modifier in zip(
                                 entry.split(','), CurveFitParameter.MODIFIERS))
                         params = dict(zip(CurveFitParameter.PROPERTIES.keys(), values))
-                        param_list.append(CurveFitParameter(name=f'{name}_{n}', **params))
+                        param_list.append(CurveFitParameter(name=f'{param_name}_{n}', **params))
             print('\n')
         except ValueError:
             raise InvalidInputError('Input parameter is invalid.')
@@ -351,8 +342,7 @@ class MultipleCurveFit(Common, AbstractCurveFit):
                 self.info(f'parameter of {name}')
                 self.info(
                     f'  {self.result.params[name].value} +- {self.result.params[name].stderr}')
-            log_file = f'{self.file_prefix}_result.log'
-            with open(log_file, 'w') as log:
+            with open(self.log_file, 'w') as log:
                 log.write(
                     '--------------------------------------------------------------------\n')
                 log.write(lf.fit_report(self.result))
@@ -363,7 +353,7 @@ class MultipleCurveFit(Common, AbstractCurveFit):
                     f' Chi-squared value / d.o.f. = {self.result.chisqr} / {self.result.nfree}\n')
                 log.write(f' Reduced Chi-squared value  = {self.result.redchi}\n')
                 log.write('\n')
-            self.info(f'Fitting results were recorded to {log_file}')
+            self.info(f'Fitting results were recorded to {self.log_file}')
             self.create_result_qdp()
             self.plot()
         self.debug('END', inspect.currentframe())
@@ -418,12 +408,8 @@ class MultipleCurveFit(Common, AbstractCurveFit):
                          figsize=(8, 6), nrows=2, height_ratios=[0.7, 0.3], fsize=20,
                          left=0.15, right=0.95, bottom=0.15, top=0.9)
 
-        spl.fig.suptitle(f'{self.property.xis}',
-                         x=0.53, y=0.93,
-                         fontsize=spl.fsize, va=spl.valign, ha=spl.halign)
-
         # data & best-fit model
-        for n, color in zip(range(self.ndata), spl.colors.values()):
+        for n, raw_name, color in zip(range(self.ndata), self.raw_data.keys(), spl.colors.values()):
             # data
             spl.axes[0].errorbar(
                 x=self.xd[n], y=self.yd[n],
@@ -431,7 +417,7 @@ class MultipleCurveFit(Common, AbstractCurveFit):
                 marker=spl.marker, ms=spl.masize, fmt=spl.pltfmt,
                 color=color, ecolor=color, mec=color,
                 capsize=0.0, elinewidth=spl.lwidth,
-                label=f'{self.property.phase[n]}')
+                label=f'{raw_name}')
             # model
             spl.axes[0].plot(self.DUMMY_ENERGY, self.result_curve[n],
                 lw=spl.lwidth, ls=':', color=color)
@@ -470,13 +456,7 @@ class MultipleCurveFit(Common, AbstractCurveFit):
             ax.xaxis.set_major_locator(ticker.LogLocator(base=10))
             ax.yaxis.set_label_coords(-0.11, 0.5)
 
-        if self.image_out_flag:
-            image_file = f'{self.file_prefix}_result.{self.IMAGE_FILE_TYPE}'
-            spl.fig.savefig(image_file, format=self.IMAGE_FILE_TYPE,
-                            bbox_inches='tight', dpi=self.IMAGE_FILE_DPI, transparent=True)
-            self.info(f'{image_file} is generated')
-            plt.close(spl.fig)
-        else:
+        if self.plot_flag:
             plt.pause(1.0)
             plt.show()
 
