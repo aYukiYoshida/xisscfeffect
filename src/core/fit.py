@@ -173,7 +173,8 @@ class SingleCurveFit(Common, AbstractCurveFit):
             log.write('\n')
         self.info(f'Fitting results were recorded to {self.log_file}')
         self.create_result_qdp()
-        self.plot()
+        if self.plot_flag:
+            self.plot()
         self.debug('END', inspect.currentframe())
 
     @property
@@ -246,9 +247,8 @@ class SingleCurveFit(Common, AbstractCurveFit):
             ax.xaxis.set_major_locator(ticker.LogLocator(base=10))
             ax.yaxis.set_label_coords(-0.11, 0.5)
 
-        if self.plot_flag:
-            plt.pause(1.0)
-            plt.show()
+        plt.pause(1.0)
+        plt.show()
 
         self.debug('END', inspect.currentframe())
 
@@ -355,7 +355,8 @@ class MultipleCurveFit(Common, AbstractCurveFit):
                 log.write('\n')
             self.info(f'Fitting results were recorded to {self.log_file}')
             self.create_result_qdp()
-            self.plot()
+            if self.plot_flag:
+                self.plot()
         self.debug('END', inspect.currentframe())
 
     @property
@@ -456,8 +457,7 @@ class MultipleCurveFit(Common, AbstractCurveFit):
             ax.xaxis.set_major_locator(ticker.LogLocator(base=10))
             ax.yaxis.set_label_coords(-0.11, 0.5)
 
-        if self.plot_flag:
-            plt.pause(1.0)
-            plt.show()
+        plt.pause(1.0)
+        plt.show()
 
         self.debug('END', inspect.currentframe())
