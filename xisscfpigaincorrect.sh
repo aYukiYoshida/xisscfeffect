@@ -1,30 +1,14 @@
 #!/bin/bash
 
 ################################################################################
-## Redaction history
-################################################################################
-# Version | Date       | Author   | Description
-#-------------------------------------------------------------------------------
-# 1.0     | 2012.08.13 | yyoshida | prototype
-# 1.1     | 2012.08.21 | yyoshida | PI header������ʬ���ѹ�
-# 1.2     | 2012.11.23 | yyoshida | ftools��version�ѹ�,gain��������function���ѹ�
-# 2.0     | 2012.11.26 | yyoshida | C����Υץ�������bug����
-# 2.1     | 2012.11.27 | yyoshida | C����Υץ�������bug����
-# 3.0     | 2020.04.20 | yyoshida | redrawn
-
-
-################################################################################
 ## VARIABLES
 ################################################################################
 SCRIPTNAME=`basename $0`
-VERSION="3.0"
+VERSION="3.1"
 AUTHER="Y.Yoshida"
 LOG_LEVEL_CRITERIA=1 # initialize
 COMMAND_NOT_FOUND=0 # initialize
 ARGUMENT_NOT_FOUND=0 # initialize
-[ -L ${SCRIPTNAME} ] && SCRIPTNAME=$(readlink ${SCRIPTNAME})
-SYS=$(cd $(dirname ${SCRIPTNAME}); pwd)
-corrector=${SYS}/pigaincorrect
 
 
 ################################################################################
@@ -162,7 +146,7 @@ correct_pi_gain(){
     dump_pi_head fdump_head.dat
     prepare_data_ascii tmp_head.dat head.dat
 
-    ${corrector} data.dat data_cor.dat ${e_actual} ${e_expect}
+    pigaincorrect data.dat data_cor.dat ${e_actual} ${e_expect}
     rm -f data.dat
 }
 
