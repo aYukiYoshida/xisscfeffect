@@ -80,8 +80,6 @@ abort(){
         InvalidInputNumber) local message="Input is excess or deficiency !!" ;;        
         InvalidOption) local message="Invalid input option !!" ;;
         NotFoundCommand) local message="Not found necessary command !!" ;;
-        NotFoundDirectory) local message="Not found observation data directory !!" ;;
-        NotFoundEventDirectory) local message="Not found unscreened event directory !!" ;;
         *) local message="Abort !!" ;;
     esac
     logger 3 "${message}"
@@ -223,6 +221,11 @@ for var in input actual expect ;do
 done
 
 [ ${ARGUMENT_NOT_FOUND} -eq 1 ] && abort InvalidInputNumber
+
+if [ ! -e ${input} ];then
+    logger 3 "${input} is not found !!"
+    abort InvalidInput
+fi
 
 
 ##------------------------------------------------------------------------------
