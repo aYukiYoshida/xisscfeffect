@@ -105,6 +105,7 @@ dump_pi_data(){
     local script=$1
     fdump prhead=no clobber=yes < ${script} > /dev/null
     rm -f ${script}
+    punlearn fdump
 }
 
 
@@ -120,13 +121,14 @@ dump_pi_head(){
     local script=$1
     fdump prdata=no clobber=yes < ${script} > /dev/null
     rm -f ${script}
+    punlearn fdump
 }
 
 
 prepare_head_ascii(){
     local datfile=$1
     local outfile=$2
-    cat ${datfile}|sed '1,/count/d' > ${outfile}
+    cat ${datfile}|sed '1,/EXTNAME/d' > ${outfile}
     rm -f ${datfile}
 }
 
@@ -142,7 +144,7 @@ correct_pi_gain(){
 
     prepare_dump_pi fdump_head.dat ${pifile} tmp_head.dat
     dump_pi_head fdump_head.dat
-    prepare_data_ascii tmp_head.dat head.dat
+    prepare_head_ascii tmp_head.dat head.dat
 
     pigaincorrect data.dat data_cor.dat ${e_actual} ${e_expect}
     rm -f data.dat
@@ -159,6 +161,7 @@ create_corrected_pi(){
 
     fcreate cdf.dat data_cor.dat headfile=head.dat ${outfile} extname=SPECTRUM clobber=${clobber}
     rm -f cdf.dat data_cor.dat head.dat
+    punlearn fcreate
 }
 
 
