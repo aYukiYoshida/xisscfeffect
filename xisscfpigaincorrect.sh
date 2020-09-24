@@ -105,6 +105,7 @@ dump_pi_data(){
     local script=$1
     fdump prhead=no clobber=yes < ${script} > /dev/null
     rm -f ${script}
+    punlearn fdump
 }
 
 
@@ -120,6 +121,7 @@ dump_pi_head(){
     local script=$1
     fdump prdata=no clobber=yes < ${script} > /dev/null
     rm -f ${script}
+    punlearn fdump
 }
 
 
@@ -159,6 +161,7 @@ create_corrected_pi(){
 
     fcreate cdf.dat data_cor.dat headfile=head.dat ${outfile} extname=SPECTRUM clobber=${clobber}
     rm -f cdf.dat data_cor.dat head.dat
+    punlearn fcreate
 }
 
 
