@@ -123,14 +123,6 @@ dump_pi_head(){
 }
 
 
-prepare_head_ascii(){
-    local datfile=$1
-    local outfile=$2
-    cat ${datfile}|sed '1,/count/d' > ${outfile}
-    rm -f ${datfile}
-}
-
-
 correct_pi_gain(){
     local pifile=$1
     local e_actual=$2
@@ -140,9 +132,8 @@ correct_pi_gain(){
     dump_pi_data fdump_data.dat
     prepare_data_ascii tmp_data.dat data.dat
 
-    prepare_dump_pi fdump_head.dat ${pifile} tmp_head.dat
+    prepare_dump_pi fdump_head.dat ${pifile} head.dat
     dump_pi_head fdump_head.dat
-    prepare_data_ascii tmp_head.dat head.dat
 
     pigaincorrect data.dat data_cor.dat ${e_actual} ${e_expect}
     rm -f data.dat
