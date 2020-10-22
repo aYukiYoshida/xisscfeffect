@@ -324,7 +324,7 @@ class MultipleCurveFit(Common, AbstractCurveFit):
         residual = 0.0 * self.yd
 
         for n in range(self.ndata):
-            residual[n,:] = (self.yd[n,:] - self.calculate_model(parameters, n, E[n,:]))*self.ye[n,:]**(-2)
+            residual[n,:] = (self.yd[n,:] - self.calculate_model(parameters, n, E[n,:]))**2*self.ye[n,:]**(-2)
 
         # now flatten this to a 1D array, as minimize() needs
         return residual.flatten()
